@@ -39,20 +39,77 @@ function Clock({ hour, minute }) {
 function App(){
   const [hour,setHour]=React.useState(3);
   const [minute,setMinute]=React.useState(0);
+  const [allowedHours,setAllowedHours]=React.useState([1,2,3,4,5,6,7,8,9,10,11,12]);
+  const [allowedMinutes,setAllowedMinutes]=React.useState([0,5,10,15,20,25,30,35,40,45,50,55]);
+  const [hourWeights,setHourWeights]=React.useState(Array(12).fill(1));
+  const [minuteWeights,setMinuteWeights]=React.useState(Array(12).fill(1));
+
+  const toggleHour=(h)=>{
+    setAllowedHours(prev=> prev.includes(h)? prev.filter(x=>x!==h): [...prev,h]);
+  };
+
+  const toggleMinute=(m)=>{
+    setAllowedMinutes(prev=> prev.includes(m)? prev.filter(x=>x!==m): [...prev,m]);
+  };
+
+  const randomWeighted = (options, weights) => {
+    const total = weights.reduce((a,b)=>a+b,0);
+    let r = Math.random() * total;
+    for(let i=0;i<options.length;i++){
+      if(r < weights[i]) return options[i];
+      r -= weights[i];
+    }
+    return options[options.length-1];
+  };
 
   const randomTime=()=>{
-    const h=Math.floor(Math.random()*12)||12;
-    const m=[0,15,30,45][Math.floor(Math.random()*4)];
+    if(allowedHours.length===0 || allowedMinutes.length===0) return;
+
+    const h = randomWeighted(allowedHours, hourWeights.slice(0, allowedHours.length));
+    const m = randomWeighted(allowedMinutes, minuteWeights.slice(0, allowedMinutes.length));
+
     setHour(h);
     setMinute(m);
     speak("מה השעה?");
   };
 
   return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",background:"#eef5ff"}}>
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:20,padding:20,background:"linear-gradient(135deg,#e0f0ff,#fef6ff)",minHeight:"100vh"}}>
       <h2>⏰ לומדים שעון</h2>
+
       <Clock hour={hour} minute={minute}/>
-      <button onClick={randomTime}>🎲 שאלה</button>
+
+      <button onClick={randomTime} style={{padding:10,background:"#6aa9ff",color:"white",border:"none",borderRadius:8}}>🎲 שאלה</button>
+
+      <div>
+        <h4>בחרי שעות:</h4>
+        {[1,2,3,4,5,6,7,8,9,10,11,12].map((h,i)=>(
+          <div key={h}>
+            <label>
+              <input type="checkbox" checked={allowedHours.includes(h)} onChange={()=>toggleHour(h)}/> {h}
+            </label>
+            <input type="range" min="0" max="5" value={hourWeights[i]} onChange={e=>{
+              const copy=[...hourWeights];
+              copy[i]=Number(e.target.value);
+              setHourWeights(copy);
+            }}/>
+          </div>
+        ))}
+
+        <h4>בחרי דקות:</h4>
+        {[0,5,10,15,20,25,30,35,40,45,50,55].map((m,i)=>(
+          <div key={m}>
+            <label>
+              <input type="checkbox" checked={allowedMinutes.includes(m)} onChange={()=>toggleMinute(m)}/> {m}
+            </label>
+            <input type="range" min="0" max="5" value={minuteWeights[i]} onChange={e=>{
+              const copy=[...minuteWeights];
+              copy[i]=Number(e.target.value);
+              setMinuteWeights(copy);
+            }}/>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
