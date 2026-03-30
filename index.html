@@ -39,37 +39,50 @@ function Clock({ hour, minute }) {
 function App(){
   const [hour,setHour]=React.useState(3);
   const [minute,setMinute]=React.useState(0);
-  const [allowedHours,setAllowedHours]=React.useState([1,2,3,4,5,6,7,8,9,10,11,12]);
-  const [allowedMinutes,setAllowedMinutes]=React.useState([0,5,10,15,20,25,30,35,40,45,50,55]);
-  const [hourWeights,setHourWeights]=React.useState(Array(12).fill(1));
-  const [minuteWeights,setMinuteWeights]=React.useState(Array(12).fill(1));
 
-  const toggleHour=(h)=>{
-    setAllowedHours(prev=> prev.includes(h)? prev.filter(x=>x!==h): [...prev,h]);
-  };
+  // בנק שעות עם משקלים
+  const [timeBank,setTimeBank]=React.useState([
+    {time:"3:00",weight:1},
+    {time:"6:30",weight:1},
+    {time:"9:00",weight:1}
+  ]);
 
-  const toggleMinute=(m)=>{
-    setAllowedMinutes(prev=> prev.includes(m)? prev.filter(x=>x!==m): [...prev,m]);
-  };
+  const [newTime,setNewTime]=React.useState("");
 
-  const randomWeighted = (options, weights) => {
-    const total = weights.reduce((a,b)=>a+b,0);
-    let r = Math.random() * total;
-    for(let i=0;i<options.length;i++){
-      if(r < weights[i]) return options[i];
-      r -= weights[i];
+  const addTime=()=>{
+    if(newTime && !timeBank.find(t=>t.time===newTime)){
+      setTimeBank([...timeBank,{time:newTime,weight:1}]);
+      setNewTime("");
     }
-    return options[options.length-1];
+  };
+
+  const removeTime=(t)=>{
+    setTimeBank(timeBank.filter(x=>x.time!==t));
+  };
+
+  const updateWeight=(index,value)=>{
+    const copy=[...timeBank];
+    copy[index].weight=Number(value);
+    setTimeBank(copy);
+  };
+
+  const randomWeighted=()=>{
+    const total=timeBank.reduce((sum,t)=>sum+t.weight,0);
+    let r=Math.random()*total;
+
+    for(let t of timeBank){
+      if(r < t.weight) return t.time;
+      r -= t.weight;
+    }
+    return timeBank[0].time;
   };
 
   const randomTime=()=>{
-    if(allowedHours.length===0 || allowedMinutes.length===0) return;
-
-    const h = randomWeighted(allowedHours, hourWeights.slice(0, allowedHours.length));
-    const m = randomWeighted(allowedMinutes, minuteWeights.slice(0, allowedMinutes.length));
-
-    setHour(h);
-    setMinute(m);
+    if(timeBank.length===0) return;
+    const t=randomWeighted();
+    const [h,m]=t.split(":");
+    setHour(Number(h));
+    setMinute(Number(m));
     speak("מה השעה?");
   };
 
@@ -79,36 +92,36 @@ function App(){
 
       <Clock hour={hour} minute={minute}/>
 
-      <button onClick={randomTime} style={{padding:10,background:"#6aa9ff",color:"white",border:"none",borderRadius:8}}>🎲 שאלה</button>
+      <button onClick={randomTime} style={{padding:10,background:"#6aa9ff",color:"white",border:"none",borderRadius:8}}>🎲 מה השעה?</button>
 
-      <div>
-        <h4>בחרי שעות:</h4>
-        {[1,2,3,4,5,6,7,8,9,10,11,12].map((h,i)=>(
-          <div key={h}>
-            <label>
-              <input type="checkbox" checked={allowedHours.includes(h)} onChange={()=>toggleHour(h)}/> {h}
-            </label>
-            <input type="range" min="0" max="5" value={hourWeights[i]} onChange={e=>{
-              const copy=[...hourWeights];
-              copy[i]=Number(e.target.value);
-              setHourWeights(copy);
-            }}/>
-          </div>
-        ))}
+      <div style={{marginTop:20,width:300}}>
+        <h3>🎯 בנק שעות + משקלים</h3>
 
-        <h4>בחרי דקות:</h4>
-        {[0,5,10,15,20,25,30,35,40,45,50,55].map((m,i)=>(
-          <div key={m}>
-            <label>
-              <input type="checkbox" checked={allowedMinutes.includes(m)} onChange={()=>toggleMinute(m)}/> {m}
-            </label>
-            <input type="range" min="0" max="5" value={minuteWeights[i]} onChange={e=>{
-              const copy=[...minuteWeights];
-              copy[i]=Number(e.target.value);
-              setMinuteWeights(copy);
-            }}/>
-          </div>
-        ))}
+        <input
+          placeholder="לדוגמה 3:30"
+          value={newTime}
+          onChange={e=>setNewTime(e.target.value)}
+        />
+        <button onClick={addTime} style={{marginLeft:10}}>➕ הוסף</button>
+
+        <div style={{marginTop:10}}>
+          {timeBank.map((t,i)=>(
+            <div key={t.time} style={{marginBottom:10,borderBottom:"1px solid #ddd",paddingBottom:5}}>
+              <div>
+                {t.time} 
+                <button onClick={()=>removeTime(t.time)}>❌</button>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="5"
+                value={t.weight}
+                onChange={e=>updateWeight(i,e.target.value)}
+              />
+              <span> משקל: {t.weight}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
